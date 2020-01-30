@@ -13,7 +13,7 @@ def get_aws_resource_name(resource):
         for tag in resource['Tags']:
             if tag['Key'] == 'Name':
                 return tag['Value']
-    return 'None'
+    return None
 
 
 def get_aws_regions_list():
@@ -133,12 +133,17 @@ def get_available_networks(desired_cidr, reserved_networks):
                                             10.9.255.255/16   10.11.0.0/16           |            |
                                                                                10.50.0.0/16  10.50.255.255
     So in this example there should be 3 available ranges, and 3 reserved ranges (marked with #)
-    10.0.0.0    -   10.7.255.255    available
-    10.8.0.0    -   10.11.255.255   reserved
-    10.10.0.0   -   10.10.255.255   reserved
-    10.12.0.0   -   10.49.255.255   available
-    10.50.0.0   -   10.50.255.255   reserved
-    10.51.0.0   -   10.255.255.255  available
+    Printed output should be:
+
+    | Lowest IP   | Upper IP       |   Num of Addr | Available   | ID                    | Name          |
+    |-------------|----------------|---------------|-------------|-----------------------|---------------|
+    | 10.0.0.0    | 10.7.255.255   |        524288 | True        |                       |               |
+    | 10.8.0.0    | 10.11.255.255  |        262144 | False       | vpc-vxx3X5hzPNk9Jws9G | alpha         |
+    | 10.10.0.0   | 10.10.255.255  |         65536 | False       | vpc-npGac6CHRJE2JakNZ | dev-k8s       |
+    | 10.12.0.0   | 10.49.255.255  |       2490368 | True        |                       |               |
+    | 10.50.0.0   | 10.50.255.255  |         65536 | False       | vpc-f8Sbkd2jSLQF6x9Qd | arie-test-vpc |
+    | 10.51.0.0   | 10.255.255.255 |      13434880 | True        |                       |               |
+
     :param desired_cidr: IPv4Network
     :param reserved_networks: list of PyVPCBlock objects
     :return: list of PyVPCBlock objects
@@ -146,7 +151,7 @@ def get_available_networks(desired_cidr, reserved_networks):
     # If there are no reserved networks, then return that all 'desired_cidr' (Network Object) range is available
     if not reserved_networks:
         # Since there are no reserved network, the lower, and upper boundary of the 'desired_cidr' can be used
-        return [{'lower_ip': desired_cidr[0], 'upper_ip': desired_cidr[-1], 'available': True}]
+        return [PyVPCBlock(network=desired_cidr, block_available=True)]
 
     # Sort PyVPCBlock objects (reserved networks) by the 'network' field, so it will be easier to calculate
     reserved_networks = sorted(reserved_networks, key=lambda x: x.network, reverse=False)
