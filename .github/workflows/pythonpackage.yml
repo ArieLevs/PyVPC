@@ -25,8 +25,8 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with unittest
       run: |
-        pip install -r pyvpc/test_requirements.txt
-        python -m unittest pyvpc/pyvpc_unittest.py -vv
+        pip install -r test/requirements.txt
+        cd pyvpc && python -m unittest discover -s .. -vv
     - name: Check distribution valid
       run: |
         pip install wheel twine
