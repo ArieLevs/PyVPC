@@ -28,9 +28,11 @@ pyvpc aws --cidr-range 10.0.0.0/8
 ```
 will return:
 ```
-{'lower_ip': IPv4Address('10.0.0.0'), 'upper_ip': IPv4Address('10.19.255.255'), 'available': True}
-{'lower_ip': IPv4Address('10.20.0.0'), 'upper_ip': IPv4Address('10.20.255.255'), 'available': False}
-{'lower_ip': IPv4Address('10.21.0.0'), 'upper_ip': IPv4Address('10.29.255.255'), 'available': True}
-{'lower_ip': IPv4Address('10.30.0.0'), 'upper_ip': IPv4Address('10.30.255.255'), 'available': False}
-{'lower_ip': IPv4Address('10.31.0.0'), 'upper_ip': IPv4Address('10.255.255.255'), 'available': True}
+| Lowest IP   | Upper IP       |   Num of Addr | Available   | ID                    | Name         |
+|-------------|----------------|---------------|-------------|-----------------------|--------------|
+| 10.0.0.0    | 10.19.255.255  |       1310720 | True        |                       |              |
+| 10.20.0.0   | 10.20.255.255  |         65536 | False       | vpc-Ec9hQfmjk4sPCH65c | lev-test-vpc |
+| 10.21.0.0   | 10.29.255.255  |        589824 | True        |                       |              |
+| 10.30.0.0   | 10.30.255.255  |         65536 | False       | vpc-4WNpVY5wCLmdqfJLy | dev-k8s      |
+| 10.31.0.0   | 10.255.255.255 |      14745600 | True        |                       |              |
 ```

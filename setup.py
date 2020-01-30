@@ -3,12 +3,15 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+keywords = ['Networking', 'IPv4', 'IP', 'CIDR', 'VPC', 'AWS', 'Subnet']
+
 setuptools.setup(
     name="pyvpc",
     version="0.0.3",
     author="Arie Lev",
     author_email="levinsonarie@gmail.com",
     description="Python AWS VPC CIDR available range finder with sub networks",
+    keywords=keywords,
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/ArieLevs/PyVPC",
