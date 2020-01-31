@@ -3,13 +3,14 @@ class PyVPCBlock(object):
     network = None
     start_address = None
     end_address = None
-    vpc_id = None
-    vpc_name = None
+    resource_id = None
+    name = None
+    resource_type = None
     num_of_addresses = 0
     block_available = False
 
-    def __init__(self, network=None, start_address=None, end_address=None, vpc_id=None,
-                 vpc_name=None, block_available=False):
+    def __init__(self, network=None, start_address=None, end_address=None, resource_id=None,
+                 name=None, resource_type=None, block_available=False):
         if network is None and (start_address is None or end_address is None):
             raise ValueError("network or start-end addresses should be provided")
 
@@ -23,15 +24,19 @@ class PyVPCBlock(object):
             self.end_address = end_address
             self.num_of_addresses = int(end_address) - int(start_address) + 1
 
-        self.vpc_id = vpc_id
-        self.vpc_name = vpc_name
+        self.resource_id = resource_id
+        self.name = name
+        self.resource_type = resource_type
         self.block_available = block_available
 
     def get_id(self):
-        return self.vpc_id
+        return self.resource_id
 
     def get_name(self):
-        return self.vpc_name
+        return self.name
+
+    def get_type(self):
+        return self.resource_type
 
     def get_network(self):
         return self.network
