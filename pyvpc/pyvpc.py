@@ -30,6 +30,90 @@ def get_aws_regions_list():
     return regions_list
 
 
+def get_aws_vpc_if_exists(vpc_id_name, aws_region=None):
+    """
+    Return reserved subnets, in input vpc
+
+    if first response successful, using vpc-id filter return the vpc-id found,
+    if vpc not found by its id, make second call using name filter,
+    return error if more then one vpc has same name
+
+    :param vpc_id_name: string
+    :param aws_region: string
+    :return: PyVPCBlock object
+    """
+    response = boto3.client('ec2', region_name=aws_region).describe_vpcs(
+        Filters=[
+            {
+                'Name': 'vpc-id',
+                'Values': [
+                    vpc_id_name,
+                ]
+            },
+        ],
+    )['Vpcs']
+
+    if response:
+        vpc_cidr = ipaddress.ip_network(response[0]['CidrBlock'])
+        vpc_id = response[0]['VpcId']
+        vpc_name = get_aws_resource_name(response[0])
+        return PyVPCBlock(network=vpc_cidr, resource_id=vpc_id, name=vpc_name, resource_type='vpc')
+
+    # In case no VPC found using vpc-id filter, try using input as name filter
+    response = boto3.client('ec2', region_name=aws_region).describe_vpcs(
+        Filters=[
+            {
+                'Name': 'tag:Name',
+                'Values': [
+                    vpc_id_name,
+                ]
+            },
+        ],
+    )['Vpcs']
+
+    # There is a single vpc with 'vpc_id_name'
+    if len(response) == 1:
+        vpc_cidr = ipaddress.ip_network(response[0]['CidrBlock'])
+        vpc_id = response[0]['VpcId']
+        vpc_name = get_aws_resource_name(response[0])
+        return PyVPCBlock(network=vpc_cidr, resource_id=vpc_id, name=vpc_name, resource_type='vpc')
+    # Is case there are multiple VPCs with the same name, raise exception
+    elif len(response) > 1:
+        found = []
+        for x in response:
+            found.append(x['VpcId'])
+        raise ValueError("more then one vpc found with name {} - {}".format(vpc_id_name, str(found)))
+
+    # Nothing found
+    return None
+
+
+def get_aws_reserved_subnets(vpc_id, aws_region=None):
+    """
+    Get a list of AWS subnets of a given VPC
+    :param vpc_id: string
+    :param aws_region: string
+    :return: list of PyVPCBlock objects
+    """
+    response = boto3.client('ec2', region_name=aws_region).describe_subnets(
+        Filters=[
+            {
+                'Name': 'vpc-id',
+                'Values': [
+                    vpc_id,
+                ]
+            }
+        ])['Subnets']
+
+    reserved_subnets = []
+    for subnet in response:
+        reserved_subnets.append(PyVPCBlock(network=ipaddress.ip_network(subnet['CidrBlock']),
+                                           resource_id=subnet['SubnetId'],
+                                           name=get_aws_resource_name(subnet),
+                                           resource_type='subnet'))
+    return reserved_subnets
+
+
 def get_aws_reserved_networks(region=None, all_regions=False):
     """
     Get a list of AWS cidr networks that are already used in input region,
@@ -50,8 +134,9 @@ def get_aws_reserved_networks(region=None, all_regions=False):
     vpc_used_cidr_list = []
     for vpc in result:
         vpc_used_cidr_list.append(PyVPCBlock(network=ipaddress.ip_network(vpc['CidrBlock']),
-                                             vpc_id=vpc['VpcId'],
-                                             vpc_name=get_aws_resource_name(vpc)))
+                                             resource_id=vpc['VpcId'],
+                                             name=get_aws_resource_name(vpc),
+                                             resource_type='vpc'))
     return vpc_used_cidr_list
 
 
@@ -151,7 +236,8 @@ def get_available_networks(desired_cidr, reserved_networks):
     # If there are no reserved networks, then return that all 'desired_cidr' (Network Object) range is available
     if not reserved_networks:
         # Since there are no reserved network, the lower, and upper boundary of the 'desired_cidr' can be used
-        return [PyVPCBlock(network=desired_cidr, block_available=True)]
+        return [PyVPCBlock(network=desired_cidr,
+                           block_available=True)]
 
     # Sort PyVPCBlock objects (reserved networks) by the 'network' field, so it will be easier to calculate
     reserved_networks = sorted(reserved_networks, key=lambda x: x.network, reverse=False)
@@ -169,11 +255,12 @@ def get_available_networks(desired_cidr, reserved_networks):
             if range_head < reserved_net.get_start_address():
                 networks_result.append(PyVPCBlock(start_address=range_head,
                                                   end_address=reserved_net.get_start_address() - 1,
-                                                  block_available=True))
+                                                  block_available=True,
+                                                  resource_type='available block'))
 
             # Append the overlapping network as NOT available
-            networks_result.append(PyVPCBlock(network=reserved_net.get_network(), vpc_id=reserved_net.get_id(),
-                                              vpc_name=reserved_net.get_name()))
+            networks_result.append(PyVPCBlock(network=reserved_net.get_network(), resource_id=reserved_net.get_id(),
+                                              name=reserved_net.get_name()))
 
             # If the most upper address of current reserved_net (that is overlapping the desired_cidr),
             # is larger/equal than the most upper address of desired_cidr, then there is no point perform calculations
@@ -223,7 +310,7 @@ def main():
 
     # Define parses that is shared, and will be used as 'parent' parser to all others
     base_sub_parser = argparse.ArgumentParser(add_help=False)
-    base_sub_parser.add_argument('--cidr-range', help='Check free ranges in current cidr', required=True)
+    base_sub_parser.add_argument('--cidr-range', help='Check free ranges in current cidr', required=False)
 
     # Sub-parser for aws
     parser_aws = subparsers.add_parser('aws', parents=[base_sub_parser])
@@ -232,20 +319,41 @@ def main():
                             required=False)
     parser_aws.add_argument('--all-regions', action='store_true',
                             help='Run PyVPC on all AWS regions (app will run much longer)', required=False)
+    parser_aws.add_argument('--vpc',
+                            help='AWS VPC id or name, return available ranges is specific VPC',
+                            required=False)
     args = vars(parser.parse_args())
+
+    if args['sub_command'] is None:
+        parser.print_help()
+        exit(0)
+
+    if not args['cidr_range'] and not args['vpc']:
+        print('--cidr-range or --vpc flags must be provided', file=stderr)
+        exit(1)
 
     network = None
     try:
-        network = ipaddress.ip_network(args['cidr_range'])
+        if args['cidr_range']:
+            network = PyVPCBlock(network=ipaddress.ip_network(args['cidr_range']))
+        elif args['vpc']:
+            network = get_aws_vpc_if_exists(args['vpc'], args['region'])
+            if not network:  # In case no vpc found with input id/name
+                print('no vpc found with id/name "{}" '.format(args['vpc']), file=stderr)
+                exit(1)
     except ValueError as exc:
         print(exc, file=stderr)
         exit(1)
 
-    # Get all not available (used) CIDRs
-    reserved_cidrs = get_aws_reserved_networks(args['region'], args['all_regions'])
+    if args['cidr_range']:
+        # Get all not available (used) CIDRs
+        reserved_cidrs = get_aws_reserved_networks(args['region'], args['all_regions'])
+    # Case --vpc passed
+    else:
+        reserved_cidrs = get_aws_reserved_subnets(network.get_id())
 
     # Calculate available CIDRs based or input request
-    pyvpc_objects = get_available_networks(network, reserved_cidrs)
+    pyvpc_objects = get_available_networks(network.get_network(), reserved_cidrs)
     print_pyvpc_objects_list(pyvpc_objects)
 
 
