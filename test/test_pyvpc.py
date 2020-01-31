@@ -10,14 +10,14 @@ class IPv4Test(unittest.TestCase):
         self.reserved_pyvpc_block = PyVPCBlock(network=IPv4Network('10.90.0.0/16'),
                                                start_address=None,
                                                end_address=None,
-                                               vpc_id='vpc-some-vpc-id-here',
-                                               vpc_name='arie-test-vpc',
+                                               resource_id='vpc-some-vpc-id-here',
+                                               name='arie-test-vpc',
                                                block_available=False)
         self.available_pyvpc_block = PyVPCBlock(network=None,
                                                 start_address=IPv4Address('10.80.5.24'),
                                                 end_address=IPv4Address('10.80.255.255'),
-                                                vpc_id=None,
-                                                vpc_name=None,
+                                                resource_id=None,
+                                                name=None,
                                                 block_available=True)
 
         self.cidr_requested = IPv4Network('10.0.0.0/8')
