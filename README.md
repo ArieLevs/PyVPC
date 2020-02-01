@@ -16,8 +16,11 @@ pip install pyvpc
 
 ## Usage
 #### aws:
-```bash
-pyvpc aws [-h] --cidr-range CIDR_RANGE [--region REGION] [--all-regions]
+```
+pyvpc aws [-h] [--cidr-range CIDR_RANGE]
+          [--suggest-range {0-32}]
+          [--num-of-addr NUM_OF_ADDR] [--region REGION]
+          [--all-regions] [--vpc VPC]
 ```
 
 ## Examples
@@ -57,3 +60,13 @@ pyvpc aws [-h] --cidr-range CIDR_RANGE [--region REGION] [--all-regions]
     | 10.50.22.0  | 10.50.22.255  |           256 | False       | subnet-7p4djeetkkkgmqqqk | database-arie-test |
     | 10.50.23.0  | 10.50.255.255 |         59648 | True        |                          |                    |
     ```
+
+* Find next available network:
+  For example we pass the `--cidr-range 10.0.0.0/8` value,
+  on the first example (`10.20.0.0/16` and `10.30.0.0/16` are reserved).
+  
+  By adding `--suggest-range 16` the result will be `10.0.0.0/16`,
+  as it the first available network with prefix `16`.
+  
+  Or if adding `--num-of-addr 2200000` (we need 2.2 million addresses),
+  the result will be `10.64.0.0/10` as it the first available network containing this amount.
