@@ -287,6 +287,107 @@ def get_available_networks(desired_cidr, reserved_networks):
     return networks_result
 
 
+def calculate_suggested_cidr(ranges, prefix, minimal_num_of_addr):
+    """
+    Get available CIDR (network object), among input ip ranges, according requirements
+    Example:
+    Input ranges are:
+    | Lowest IP   | Upper IP       |   Num of Addr | Available   | ID                    | Name          |
+    |-------------|----------------|---------------|-------------|-----------------------|---------------|
+    | 10.0.0.0    | 10.7.255.255   |        524288 | True        |                       |               |
+    | 10.8.0.0    | 10.11.255.255  |        262144 | False       | vpc-vxx3X5hzPNk9Jws9G | alpha         |
+    | 10.10.0.0   | 10.10.255.255  |         65536 | False       | vpc-npGac6CHRJE2JakNZ | dev-k8s       |
+    | 10.12.0.0   | 10.49.255.255  |       2490368 | True        |                       |               |
+    | 10.50.0.0   | 10.50.255.255  |         65536 | False       | vpc-f8Sbkd2jSLQF6x9Qd | arie-test-vpc |
+    | 10.51.0.0   | 10.255.255.255 |      13434880 | True        |                       |               |
+
+    function will iterate over all these ranges (lower - upper ip),
+    and inspect only those that have the Available: True value,
+    if minimal_num_of_addr param passed, return the first network that has enough addresses
+    if prefix param passed, return first available network with input prefix
+    if non of the above passed, return the first available network found
+
+    :param ranges: list of PyVPCBlock objects
+    :param prefix: int
+    :param minimal_num_of_addr: int
+    :return: IPv4Network object
+    """
+    # For each PyVPCBlock object (available or not)
+    for net_range in ranges:
+        # Only if available block found, there is logic to continue
+        if net_range.block_available:
+            possible_networks = []
+
+            # The summarize_address_range function will return a list of IPv4Network objects,
+            # Docs at https://docs.python.org/3/library/ipaddress.html#ipaddress.summarize_address_range
+            net_cidr = ipaddress.summarize_address_range(net_range.get_start_address(), net_range.get_end_address())
+            try:  # Convert start/end IPs to possible CIDRs,
+                for net in net_cidr:
+                    possible_networks.append(net)  # appending IPv4Network objects
+            except (TypeError, ValueError) as exc:
+                print('error converting {} and {} to cidr, '.format(net_range.get_start_address(),
+                                                                    net_range.get_end_address()) + str(exc))
+                return []
+
+            for network in possible_networks:
+                # In case a minimal number of addresses requested
+                if minimal_num_of_addr:
+                    if minimal_num_of_addr <= network.num_addresses:
+                        return network
+                # Return first available network with input suffix
+                elif prefix:
+                    possible_subnets = []
+                    try:
+                        network_subnets = network.subnets(new_prefix=prefix)
+                        for sub in network_subnets:
+                            possible_subnets.append(sub)  # appending IPv4Network objects
+                    except ValueError as exc:
+                        print(str(exc) + ', lowest ip examined range is {}, but prefix was {}'.format(network, prefix))
+                        return []
+
+                    # Return first possible subnet (that is a valid subnet of current 'network')
+                    return possible_subnets[0]
+                # No prefix or minimal num of addresses requested
+                else:
+                    return network
+
+    # No suitable range found (or all are overlapping, or there are not enough ip addresses requested)
+    return []
+
+
+def check_valid_ip_int(value):
+    """
+    Validate that value is an integer between 0 to 340,282,366,920,938,463,463,374,607,431,768,211,455
+    IPv4 0 to 4,294,967,295
+    IPv6 4,294,967,296 to 340,282,366,920,938,463,463,374,607,431,768,211,455
+
+    :param value: int
+    :return: int
+    """
+    try:
+        address = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError('value is not a positive number: {}'.format(value))
+    try:
+        ipaddress.ip_address(address)
+    except ValueError:
+        raise argparse.ArgumentTypeError('is out of IPv4/IPv6 boundaries')
+    return address
+
+
+def check_valid_ip_prefix(value):
+    """
+    Validate that value is an integer between 0 to 32
+
+    :param value: int
+    :return: int
+    """
+    prefix = int(value)
+    if prefix < 0 or prefix > 32:
+        raise argparse.ArgumentTypeError('{} is an invalid IPv4 prefix'.format(prefix))
+    return prefix
+
+
 def get_self_version(dist_name):
     """
     Return version number of input distribution name,
@@ -304,24 +405,25 @@ def main():
     parser = argparse.ArgumentParser(description='Python AWS VPC CIDR available range finder with sub networks')
     subparsers = parser.add_subparsers(dest='sub_command')
 
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s {}'.format(get_self_version('pyvpc')),
+    parser.add_argument('--version', action='version', version='%(prog)s {}'.format(get_self_version('pyvpc')),
                         help='Print version and exit')
 
     # Define parses that is shared, and will be used as 'parent' parser to all others
     base_sub_parser = argparse.ArgumentParser(add_help=False)
-    base_sub_parser.add_argument('--cidr-range', help='Check free ranges in current cidr', required=False)
+    base_sub_parser.add_argument('--cidr-range', help='Check free ranges for current cidr', required=False)
+    base_sub_parser.add_argument('--suggest-range', type=check_valid_ip_prefix, required=False,
+                                 help='Return next available network with input prefix (0-32)')
+    base_sub_parser.add_argument('--num-of-addr', type=check_valid_ip_int, required=False,
+                                 help='Return next available network that contains at least addresses of num passed')
 
     # Sub-parser for aws
     parser_aws = subparsers.add_parser('aws', parents=[base_sub_parser])
-    parser_aws.add_argument('--region',
-                            help='valid AWS region, if not selected will use default region configured',
-                            required=False)
+    parser_aws.add_argument('--region', required=False,
+                            help='valid AWS region, if not selected will use default region configured')
     parser_aws.add_argument('--all-regions', action='store_true',
                             help='Run PyVPC on all AWS regions (app will run much longer)', required=False)
-    parser_aws.add_argument('--vpc',
-                            help='AWS VPC id or name, return available ranges is specific VPC',
-                            required=False)
+    parser_aws.add_argument('--vpc', required=False,
+                            help='AWS VPC id or name, return available ranges is specific VPC')
     args = vars(parser.parse_args())
 
     if args['sub_command'] is None:
@@ -354,7 +456,17 @@ def main():
 
     # Calculate available CIDRs based or input request
     pyvpc_objects = get_available_networks(network.get_network(), reserved_cidrs)
-    print_pyvpc_objects_list(pyvpc_objects)
+
+    # Case valid suggest-range OR num-of-addr passed
+    if args['suggest_range'] is not None or args['num_of_addr'] is not None:
+        suggested_net = calculate_suggested_cidr(pyvpc_objects, args['suggest_range'], args['num_of_addr'])
+        if suggested_net:
+            print(suggested_net)
+        else:
+            print('no possible available ranges found for input values')
+            exit(1)
+    else:
+        print_pyvpc_objects_list(pyvpc_objects)
 
 
 if __name__ == "__main__":
