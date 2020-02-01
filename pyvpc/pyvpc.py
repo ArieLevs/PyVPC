@@ -355,6 +355,39 @@ def calculate_suggested_cidr(ranges, prefix, minimal_num_of_addr):
     return []
 
 
+def check_valid_ip_int(value):
+    """
+    Validate that value is an integer between 0 to 340,282,366,920,938,463,463,374,607,431,768,211,455
+    IPv4 0 to 4,294,967,295
+    IPv6 4,294,967,296 to 340,282,366,920,938,463,463,374,607,431,768,211,455
+
+    :param value: int
+    :return: int
+    """
+    try:
+        address = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError('value is not a positive number: {}'.format(value))
+    try:
+        ipaddress.ip_address(address)
+    except ValueError:
+        raise argparse.ArgumentTypeError('is out of IPv4/IPv6 boundaries')
+    return address
+
+
+def check_valid_ip_prefix(value):
+    """
+    Validate that value is an integer between 0 to 32
+
+    :param value: int
+    :return: int
+    """
+    prefix = int(value)
+    if prefix < 0 or prefix > 32:
+        raise argparse.ArgumentTypeError('{} is an invalid IPv4 prefix'.format(prefix))
+    return prefix
+
+
 def get_self_version(dist_name):
     """
     Return version number of input distribution name,
@@ -378,9 +411,9 @@ def main():
     # Define parses that is shared, and will be used as 'parent' parser to all others
     base_sub_parser = argparse.ArgumentParser(add_help=False)
     base_sub_parser.add_argument('--cidr-range', help='Check free ranges in current cidr', required=False)
-    base_sub_parser.add_argument('--suggest-range', type=int, choices=range(0, 33), required=False,
-                                 help='Return next available range in input cidr')
-    base_sub_parser.add_argument('--num-of-addr', type=int, required=False,
+    base_sub_parser.add_argument('--suggest-range', type=check_valid_ip_prefix, required=False,
+                                 help='Return next available network with input prefix (0-32)')
+    base_sub_parser.add_argument('--num-of-addr', type=check_valid_ip_int, required=False,
                                  help='If passed with "--suggest-range" param,'
                                       'the range must contain at least amount of addresses passed')
 
@@ -426,7 +459,7 @@ def main():
     pyvpc_objects = get_available_networks(network.get_network(), reserved_cidrs)
 
     # Case valid suggest-range OR num-of-addr passed
-    if args['suggest_range'] is not None or args['num_of_addr']:
+    if args['suggest_range'] is not None or args['num_of_addr'] is not None:
         suggested_net = calculate_suggested_cidr(pyvpc_objects, args['suggest_range'], args['num_of_addr'])
         if suggested_net:
             print(suggested_net)
