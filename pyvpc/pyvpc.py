@@ -410,12 +410,11 @@ def main():
 
     # Define parses that is shared, and will be used as 'parent' parser to all others
     base_sub_parser = argparse.ArgumentParser(add_help=False)
-    base_sub_parser.add_argument('--cidr-range', help='Check free ranges in current cidr', required=False)
+    base_sub_parser.add_argument('--cidr-range', help='Check free ranges for current cidr', required=False)
     base_sub_parser.add_argument('--suggest-range', type=check_valid_ip_prefix, required=False,
                                  help='Return next available network with input prefix (0-32)')
     base_sub_parser.add_argument('--num-of-addr', type=check_valid_ip_int, required=False,
-                                 help='If passed with "--suggest-range" param,'
-                                      'the range must contain at least amount of addresses passed')
+                                 help='Return next available network that contains at least addresses of num passed')
 
     # Sub-parser for aws
     parser_aws = subparsers.add_parser('aws', parents=[base_sub_parser])
