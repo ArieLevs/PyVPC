@@ -70,3 +70,21 @@ def print_pyvpc_objects_list(pyvpc_objects):
     headers = ["Lowest IP", "Upper IP", "Num of Addr", "Available", "ID", "Name"]
 
     print(tabulate(table, headers, tablefmt="github"))
+
+
+def return_pyvpc_objects_json(pyvpc_objects):
+    """
+    Return list of PyVPCBlock as json
+    :param pyvpc_objects: list of PyVPCBlock
+    :return: json formatted string
+    """
+    from json import dumps
+    result = []
+    for pyvpc_object in pyvpc_objects:
+        result.append({'start_address': str(pyvpc_object.get_start_address()),
+                       'end_address': str(pyvpc_object.get_end_address()),
+                       'num_of_addresses': pyvpc_object.get_num_addresses(),
+                       'available': pyvpc_object.block_available,
+                       'id': pyvpc_object.get_id(),
+                       'name': pyvpc_object.get_name()})
+    return dumps({'ranges': result})
