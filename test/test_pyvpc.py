@@ -1,7 +1,8 @@
 import unittest
 from ipaddress import IPv4Network, IPv4Address
+from argparse import ArgumentTypeError
 
-from pyvpc.pyvpc import get_available_networks
+from pyvpc.pyvpc import get_available_networks, check_valid_ip_int, check_valid_ip_prefix, calculate_suggested_cidr
 from pyvpc_cidr_block import PyVPCBlock
 
 
@@ -96,6 +97,46 @@ class IPv4Test(unittest.TestCase):
 
         self.assertEqual(cidr_calc_ranges[0].network, self.not_overlapping_cidr)
         self.assertEqual(cidr_calc_ranges[0].get_num_addresses(), 256)
+
+    def test_check_valid_ip_int(self):
+        self.assertEqual(check_valid_ip_int(0), 0)
+        self.assertTrue(check_valid_ip_int(1))
+        self.assertTrue(check_valid_ip_int(4294967295))
+        self.assertTrue(check_valid_ip_int(340282366920938463463374607431768211455))
+
+        self.assertRaises(ArgumentTypeError, check_valid_ip_int, 'string')
+        self.assertRaises(TypeError, check_valid_ip_int, None)
+
+        self.assertRaises(ArgumentTypeError, check_valid_ip_int, 340282366920938463463374607431768211456)
+        self.assertRaises(ArgumentTypeError, check_valid_ip_int, -1)
+
+    def test_check_valid_ip_prefix(self):
+        self.assertEqual(check_valid_ip_prefix(0), 0)
+        self.assertTrue(check_valid_ip_prefix(1))
+        self.assertTrue(check_valid_ip_prefix(32))
+
+        self.assertRaises(ArgumentTypeError, check_valid_ip_prefix, -1)
+        self.assertRaises(ArgumentTypeError, check_valid_ip_prefix, 33)
+        self.assertRaises(ValueError, check_valid_ip_prefix, 'string')
+        self.assertRaises(TypeError, check_valid_ip_prefix, None)
+
+    def test_calculate_suggested_cidr(self):
+        # get all block (available or not) from reserved_networks
+        # view documentation of get_available_network function for graphic details
+        cidr_calc_ranges = get_available_networks(self.cidr_requested, self.reserved_networks)
+
+        # among the ranges returned, test for optimal suggestions
+        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, None, None), IPv4Network('10.0.0.0/13'))
+
+        # test should return 'new prefix must be longer, lowest ip examined range is 10.6.0.0/16, but prefix was 8'
+        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, 8, None), [])
+        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, 16, None), IPv4Network('10.0.0.0/16'))
+
+        # test for network with at least 524289 addresses
+        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, None, 524289), IPv4Network('10.16.0.0/12'))
+
+        # test for network with at least 3000000 addresses
+        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, None, 3000000), IPv4Network('10.64.0.0/10'))
 
 
 if __name__ == '__main__':
