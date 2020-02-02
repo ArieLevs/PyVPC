@@ -3,7 +3,7 @@ from argparse import ArgumentTypeError
 from ipaddress import IPv4Network, IPv4Address
 
 from pyvpc.pyvpc import get_available_networks, check_valid_ip_int, check_valid_ip_prefix, calculate_suggested_cidr
-from pyvpc_cidr_block import PyVPCBlock
+from pyvpc_cidr_block import PyVPCBlock, return_pyvpc_objects_json
 
 
 class IPv4Test(unittest.TestCase):
@@ -136,6 +136,17 @@ class IPv4Test(unittest.TestCase):
 
         # test for network with at least 3000000 addresses
         self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, None, 3000000), IPv4Network('10.64.0.0/10'))
+
+    def test_return_pyvpc_objects_json(self):
+        # Prepare list with single block so test response will not be long
+        single_list_range_block = [self.reserved_pyvpc_block]
+        self.assertEqual(return_pyvpc_objects_json(single_list_range_block),
+                         '{"ranges": [{"start_address": "10.90.0.0", '
+                         '"end_address": "10.90.255.255", '
+                         '"num_of_addresses": 65536, '
+                         '"available": false, '
+                         '"id": "vpc-some-vpc-id-here", '
+                         '"name": "arie-test-vpc"}]}')
 
 
 if __name__ == '__main__':

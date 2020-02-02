@@ -5,7 +5,7 @@ from sys import stderr
 import boto3
 from pkg_resources import get_distribution, DistributionNotFound
 
-from pyvpc_cidr_block import PyVPCBlock, print_pyvpc_objects_list
+from pyvpc_cidr_block import PyVPCBlock, return_pyvpc_objects_string, return_pyvpc_objects_json
 
 
 def get_aws_resource_name(resource):
@@ -417,6 +417,7 @@ def main():
                                  help='Return next available network with input prefix (0-32)')
     base_sub_parser.add_argument('--num-of-addr', type=check_valid_ip_int, required=False,
                                  help='Return next available network that contains at least addresses of num passed')
+    base_sub_parser.add_argument('--output', choices=['json'], help='Return output as json', required=False)
 
     # Sub-parser for aws
     parser_aws = subparsers.add_parser('aws', parents=[base_sub_parser])
@@ -464,7 +465,10 @@ def main():
         try:
             suggested_net = calculate_suggested_cidr(pyvpc_objects, args['suggest_range'], args['num_of_addr'])
             if suggested_net:
-                print(suggested_net)
+                if args['output'] == 'json':
+                    print({'suggested_net': str(suggested_net)})
+                else:
+                    print(suggested_net)
             else:
                 print('no possible available ranges found for input values')
                 exit(1)
@@ -472,7 +476,10 @@ def main():
             print(exc)
             exit(1)
     else:
-        print_pyvpc_objects_list(pyvpc_objects)
+        if args['output'] == 'json':
+            print(return_pyvpc_objects_json(pyvpc_objects))
+        else:
+            print(return_pyvpc_objects_string(pyvpc_objects))
 
 
 if __name__ == "__main__":
