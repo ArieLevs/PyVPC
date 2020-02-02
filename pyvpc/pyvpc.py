@@ -324,10 +324,12 @@ def calculate_suggested_cidr(ranges, prefix, minimal_num_of_addr):
             try:  # Convert start/end IPs to possible CIDRs,
                 for net in net_cidr:
                     possible_networks.append(net)  # appending IPv4Network objects
-            except (TypeError, ValueError) as exc:
-                print('error converting {} and {} to cidr, '.format(net_range.get_start_address(),
-                                                                    net_range.get_end_address()) + str(exc))
-                return []
+            except TypeError as exc:
+                raise TypeError('error converting {} and {} to cidr, '.format(net_range.get_start_address(),
+                                                                              net_range.get_end_address()) + str(exc))
+            except ValueError as exc:
+                raise TypeError('error converting {} and {} to cidr, '.format(net_range.get_start_address(),
+                                                                              net_range.get_end_address()) + str(exc))
 
             for network in possible_networks:
                 # In case a minimal number of addresses requested
@@ -342,11 +344,11 @@ def calculate_suggested_cidr(ranges, prefix, minimal_num_of_addr):
                         for sub in network_subnets:
                             possible_subnets.append(sub)  # appending IPv4Network objects
                     except ValueError as exc:
-                        print(str(exc) + ', lowest ip examined range is {}, but prefix was {}'.format(network, prefix))
-                        return []
+                        raise ValueError(str(exc) + ', lowest ip examined range is {}, but prefix was {}'
+                                         .format(network, prefix))
 
                     # Return first possible subnet (that is a valid subnet of current 'network')
-                    return possible_subnets[0]
+                    return possible_subnets
                 # No prefix or minimal num of addresses requested
                 else:
                     return network
@@ -459,11 +461,15 @@ def main():
 
     # Case valid suggest-range OR num-of-addr passed
     if args['suggest_range'] is not None or args['num_of_addr'] is not None:
-        suggested_net = calculate_suggested_cidr(pyvpc_objects, args['suggest_range'], args['num_of_addr'])
-        if suggested_net:
-            print(suggested_net)
-        else:
-            print('no possible available ranges found for input values')
+        try:
+            suggested_net = calculate_suggested_cidr(pyvpc_objects, args['suggest_range'], args['num_of_addr'])
+            if suggested_net:
+                print(suggested_net)
+            else:
+                print('no possible available ranges found for input values')
+                exit(1)
+        except ValueError as exc:
+            print(exc)
             exit(1)
     else:
         print_pyvpc_objects_list(pyvpc_objects)

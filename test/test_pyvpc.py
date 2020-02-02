@@ -1,6 +1,6 @@
 import unittest
-from ipaddress import IPv4Network, IPv4Address
 from argparse import ArgumentTypeError
+from ipaddress import IPv4Network, IPv4Address
 
 from pyvpc.pyvpc import get_available_networks, check_valid_ip_int, check_valid_ip_prefix, calculate_suggested_cidr
 from pyvpc_cidr_block import PyVPCBlock
@@ -128,8 +128,7 @@ class IPv4Test(unittest.TestCase):
         # among the ranges returned, test for optimal suggestions
         self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, None, None), IPv4Network('10.0.0.0/13'))
 
-        # test should return 'new prefix must be longer, lowest ip examined range is 10.6.0.0/16, but prefix was 8'
-        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, 8, None), [])
+        self.assertRaises(ValueError, calculate_suggested_cidr, cidr_calc_ranges, 8, None)
         self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, 16, None), IPv4Network('10.0.0.0/16'))
 
         # test for network with at least 524289 addresses
