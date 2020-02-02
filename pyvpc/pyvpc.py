@@ -5,7 +5,7 @@ from sys import stderr
 import boto3
 from pkg_resources import get_distribution, DistributionNotFound
 
-from pyvpc_cidr_block import PyVPCBlock, print_pyvpc_objects_list, return_pyvpc_objects_json
+from pyvpc_cidr_block import PyVPCBlock, return_pyvpc_objects_string, return_pyvpc_objects_json
 
 
 def get_aws_resource_name(resource):
@@ -479,7 +479,7 @@ def main():
         if args['output'] == 'json':
             print(return_pyvpc_objects_json(pyvpc_objects))
         else:
-            print_pyvpc_objects_list(pyvpc_objects)
+            print(return_pyvpc_objects_string(pyvpc_objects))
 
 
 if __name__ == "__main__":

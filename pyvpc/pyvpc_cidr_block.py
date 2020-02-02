@@ -51,11 +51,11 @@ class PyVPCBlock(object):
         return self.num_of_addresses
 
 
-def print_pyvpc_objects_list(pyvpc_objects):
+def return_pyvpc_objects_string(pyvpc_objects):
     """
     Documentation https://github.com/astanin/python-tabulate
     :param pyvpc_objects: list of PyVPCBlock
-    :return: None
+    :return: string
     """
     from tabulate import tabulate
 
@@ -69,7 +69,7 @@ def print_pyvpc_objects_list(pyvpc_objects):
     # Make sure headers are aligned with number of values is 'table'
     headers = ["Lowest IP", "Upper IP", "Num of Addr", "Available", "ID", "Name"]
 
-    print(tabulate(table, headers, tablefmt="github"))
+    return tabulate(table, headers, tablefmt="github")
 
 
 def return_pyvpc_objects_json(pyvpc_objects):
