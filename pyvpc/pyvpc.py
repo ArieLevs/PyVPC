@@ -348,7 +348,7 @@ def calculate_suggested_cidr(ranges, prefix, minimal_num_of_addr):
                                          .format(network, prefix))
 
                     # Return first possible subnet (that is a valid subnet of current 'network')
-                    return possible_subnets
+                    return possible_subnets[0]
                 # No prefix or minimal num of addresses requested
                 else:
                     return network
