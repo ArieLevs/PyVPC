@@ -1,4 +1,4 @@
-PyVPC - CIDR free ranger resolver
+PyVPC - CIDR free range resolver
 =================================
 
 [![](https://github.com/arielevs/pyvpc/workflows/Python%20package/badge.svg)](https://pypi.org/project/pyvpc/)
@@ -40,7 +40,7 @@ pyvpc aws [-h] [--cidr-range CIDR_RANGE]
     | 10.31.0.0   | 10.255.255.255 |      14745600 | True        |                       |              |
     ```
 
-*   For example, a VPC had the `10.50.0.0/16` cidr, executing command:
+*   For example, a VPC with `10.50.0.0/16` cidr, executing command:
     ```bash
     pyvpc aws --vpc vpc-3w5cymcdnwjm389gq
     ```
