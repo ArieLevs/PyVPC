@@ -121,21 +121,55 @@ class IPv4Test(unittest.TestCase):
         self.assertRaises(TypeError, check_valid_ip_prefix, None)
 
     def test_calculate_suggested_cidr(self):
+        # Declare new small network so there are less return for tests
+        cidr_requested = IPv4Network('10.10.10.0/24')
+        reserved_networks = [PyVPCBlock(network=IPv4Network('10.10.10.0/26'))]
+
         # get all block (available or not) from reserved_networks
         # view documentation of get_available_network function for graphic details
-        cidr_calc_ranges = get_available_networks(self.cidr_requested, self.reserved_networks)
+        cidr_calc_ranges = get_available_networks(cidr_requested, reserved_networks)
 
-        # among the ranges returned, test for optimal suggestions
-        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, None, None), IPv4Network('10.0.0.0/13'))
+        # test for all available sub networks, should return
+        # | Lowest IP    | Upper IP     |   Num of Addr | Available   | ID   | Name   |
+        # |--------------|--------------|---------------|-------------|------|--------|
+        # | 10.10.10.64  | 10.10.10.127 |            64 | True        |      |        |
+        # | 10.10.10.128 | 10.10.10.255 |           128 | True        |      |        |
 
+        all_available_subnets = calculate_suggested_cidr(cidr_calc_ranges, None, None)
+
+        self.assertEqual([all_available_subnets[0].get_network(),
+                          all_available_subnets[1].get_network()],
+                         [IPv4Network('10.10.10.64/26'),
+                          IPv4Network('10.10.10.128/25')])
+
+        # should raise "new prefix must be longer, lowest ip examined range is 10.10.10.64/26, but prefix was 8"
         self.assertRaises(ValueError, calculate_suggested_cidr, cidr_calc_ranges, 8, None)
-        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, 16, None), IPv4Network('10.0.0.0/16'))
 
-        # test for network with at least 524289 addresses
-        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, None, 524289), IPv4Network('10.16.0.0/12'))
+        # test for all available networks with prefix of /26, should return
+        # | Lowest IP    | Upper IP     |   Num of Addr | Available   | ID   | Name   |
+        # |--------------|--------------|---------------|-------------|------|--------|
+        # | 10.10.10.64  | 10.10.10.127 |            64 | True        |      |        |
+        # | 10.10.10.128 | 10.10.10.191 |            64 | True        |      |        |
+        # | 10.10.10.192 | 10.10.10.255 |            64 | True        |      |        |
+        all_available_subnets = calculate_suggested_cidr(cidr_calc_ranges, 26, None)
 
-        # test for network with at least 3000000 addresses
-        self.assertEqual(calculate_suggested_cidr(cidr_calc_ranges, None, 3000000), IPv4Network('10.64.0.0/10'))
+        self.assertEqual([all_available_subnets[0].get_network(),
+                          all_available_subnets[1].get_network(),
+                          all_available_subnets[2].get_network()],
+                         [IPv4Network('10.10.10.64/26'),
+                          IPv4Network('10.10.10.128/26'),
+                          IPv4Network('10.10.10.192/26')])
+
+        # test for networks with at least 100 addresses, should return
+        # | Lowest IP    | Upper IP     |   Num of Addr | Available   | ID   | Name   |
+        # |--------------|--------------|---------------|-------------|------|--------|
+        # | 10.10.10.128 | 10.10.10.255 |           128 | True        |      |        |
+        all_available_subnets = calculate_suggested_cidr(cidr_calc_ranges, None, 100)
+        self.assertEqual([all_available_subnets[0].get_network()], [IPv4Network('10.10.10.128/25')])
+
+        # test for network with at least 200 addresses, should return empty list as these are no possible networks
+        all_available_subnets = calculate_suggested_cidr(cidr_calc_ranges, None, 200)
+        self.assertEqual(all_available_subnets, [])
 
     def test_return_pyvpc_objects_json(self):
         # Prepare list with single block so test response will not be long
