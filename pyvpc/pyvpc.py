@@ -312,12 +312,13 @@ def calculate_suggested_cidr(ranges, prefix, minimal_num_of_addr):
     :param minimal_num_of_addr: int
     :return: IPv4Network object
     """
+    possible_subnets = []
+
     # For each PyVPCBlock object (available or not)
     for net_range in ranges:
         # Only if available block found, there is logic to continue
         if net_range.block_available:
             possible_networks = []
-
             # The summarize_address_range function will return a list of IPv4Network objects,
             # Docs at https://docs.python.org/3/library/ipaddress.html#ipaddress.summarize_address_range
             net_cidr = ipaddress.summarize_address_range(net_range.get_start_address(), net_range.get_end_address())
@@ -335,26 +336,23 @@ def calculate_suggested_cidr(ranges, prefix, minimal_num_of_addr):
                 # In case a minimal number of addresses requested
                 if minimal_num_of_addr:
                     if minimal_num_of_addr <= network.num_addresses:
-                        return network
+                        possible_subnets.append(PyVPCBlock(network=network, block_available=True))
                 # Return first available network with input suffix
                 elif prefix:
-                    possible_subnets = []
                     try:
                         network_subnets = network.subnets(new_prefix=prefix)
                         for sub in network_subnets:
-                            possible_subnets.append(sub)  # appending IPv4Network objects
+                            possible_subnets.append(PyVPCBlock(network=sub, block_available=True))
                     except ValueError as exc:
                         raise ValueError(str(exc) + ', lowest ip examined range is {}, but prefix was {}'
                                          .format(network, prefix))
-
-                    # Return first possible subnet (that is a valid subnet of current 'network')
-                    return possible_subnets[0]
                 # No prefix or minimal num of addresses requested
                 else:
-                    return network
+                    possible_subnets.append(PyVPCBlock(network=network, block_available=True))
 
-    # No suitable range found (or all are overlapping, or there are not enough ip addresses requested)
-    return []
+    # If empty, then no suitable range found (or all are overlapping, or there are not enough ip addresses requested)
+    # return list of PyVPCBlock objects
+    return possible_subnets
 
 
 def check_valid_ip_int(value):
@@ -414,9 +412,9 @@ def main():
     base_sub_parser = argparse.ArgumentParser(add_help=False)
     base_sub_parser.add_argument('--cidr-range', help='Check free ranges for current cidr', required=False)
     base_sub_parser.add_argument('--suggest-range', type=check_valid_ip_prefix, required=False,
-                                 help='Return next available network with input prefix (0-32)')
+                                 help='Return all available networks with input prefix (0-32)')
     base_sub_parser.add_argument('--num-of-addr', type=check_valid_ip_int, required=False,
-                                 help='Return next available network that contains at least addresses of num passed')
+                                 help='Return all available networks that contain at least addresses of num passed')
     base_sub_parser.add_argument('--output', choices=['json'], help='Return output as json', required=False)
 
     # Sub-parser for aws
@@ -462,19 +460,21 @@ def main():
 
     # Case valid suggest-range OR num-of-addr passed
     if args['suggest_range'] is not None or args['num_of_addr'] is not None:
+        suggested_net = []
         try:
             suggested_net = calculate_suggested_cidr(pyvpc_objects, args['suggest_range'], args['num_of_addr'])
-            if suggested_net:
-                if args['output'] == 'json':
-                    print({'suggested_net': str(suggested_net)})
-                else:
-                    print(suggested_net)
-            else:
-                print('no possible available ranges found for input values')
-                exit(1)
         except ValueError as exc:
             print(exc)
             exit(1)
+        if suggested_net:
+            if args['output'] == 'json':
+                print(return_pyvpc_objects_json(suggested_net))
+            else:
+                print(return_pyvpc_objects_string(suggested_net))
+        else:
+            print('no possible available ranges found for input values')
+            exit(1)
+
     else:
         if args['output'] == 'json':
             print(return_pyvpc_objects_json(pyvpc_objects))
