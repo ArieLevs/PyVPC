@@ -6,8 +6,15 @@ PyVPC - CIDR free range resolver
 [![](https://img.shields.io/pypi/l/pyvpc.svg?colorB=blue)](https://pypi.org/project/pyvpc/)
 [![](https://img.shields.io/pypi/pyversions/pyvpc.svg)](https://pypi.org/project/pyvpc/)
 
-Current version supports only AWS VPCs.  
-CIDR available range finder with sub networks
+Get available CIDR/sub networks ranges from your cloud network,
+This app will return all available networks that are not is use by a vpc, 
+or sub network that are not is use inside a specific VPC. 
+
+It can also suggest networks, according to flags passed to this app, 
+view examples below.
+
+* Current version supports only AWS VPCs.  
+
 
 ## Install
 ```bash
@@ -19,8 +26,8 @@ pip install pyvpc
 ```
 pyvpc aws [-h] [--cidr-range CIDR_RANGE]
           [--suggest-range {0-32}]
-          [--num-of-addr NUM_OF_ADDR] [--region REGION]
-          [--all-regions] [--vpc VPC]
+          [--num-of-addr NUM_OF_ADDR] [--output {json}]
+          [--region REGION] [--all-regions] [--vpc VPC]
 ```
 
 ## Examples
@@ -61,12 +68,31 @@ pyvpc aws [-h] [--cidr-range CIDR_RANGE]
     | 10.50.23.0  | 10.50.255.255 |         59648 | True        |                          |                    |
     ```
 
-* Find next available network:
-  For example we pass the `--cidr-range 10.0.0.0/8` value,
-  on the first example (`10.20.0.0/16` and `10.30.0.0/16` are reserved).
+### Suggest available networks:
+
+For example we pass the `--cidr-range 10.0.0.0/12 --suggest-range 14` value,
+on the first example (`10.20.0.0/16` and `10.30.0.0/16` are reserved).
+
+the result will be:
+```
+| Lowest IP   | Upper IP      |   Num of Addr | Available   | ID   | Name   |
+|-------------|---------------|---------------|-------------|------|--------|
+| 10.0.0.0    | 10.3.255.255  |        262144 | True        |      |        |
+| 10.4.0.0    | 10.7.255.255  |        262144 | True        |      |        |
+| 10.8.0.0    | 10.11.255.255 |        262144 | True        |      |        |
+| 10.12.0.0   | 10.15.255.255 |        262144 | True        |      |        |
+```
   
-  By adding `--suggest-range 16` the result will be `10.0.0.0/16`,
-  as it the first available network with prefix `16`.
-  
-  Or if adding `--num-of-addr 2200000` (we need 2.2 million addresses),
-  the result will be `10.64.0.0/10` as it the first available network containing this amount.
+Or if adding ` --cidr-range 10.0.0.0/10 --num-of-addr 100000`
+(we need all available network that have at least hundred thousand addresses),
+the result will be :
+```
+| Lowest IP   | Upper IP      |   Num of Addr | Available   | ID   | Name   |
+|-------------|---------------|---------------|-------------|------|--------|
+| 10.0.0.0    | 10.15.255.255 |       1048576 | True        |      |        |
+| 10.16.0.0   | 10.19.255.255 |        262144 | True        |      |        |
+| 10.22.0.0   | 10.23.255.255 |        131072 | True        |      |        |
+| 10.24.0.0   | 10.27.255.255 |        262144 | True        |      |        |
+| 10.28.0.0   | 10.29.255.255 |        131072 | True        |      |        |
+| 10.32.0.0   | 10.63.255.255 |       2097152 | True        |      |        |
+```
