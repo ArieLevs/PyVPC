@@ -178,6 +178,7 @@ class IPv4Test(unittest.TestCase):
                          '{"ranges": [{"start_address": "10.90.0.0", '
                          '"end_address": "10.90.255.255", '
                          '"num_of_addresses": 65536, '
+                         '"prefix": 16, '
                          '"available": false, '
                          '"id": "vpc-some-vpc-id-here", '
                          '"name": "arie-test-vpc"}]}')
