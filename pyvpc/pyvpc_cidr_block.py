@@ -1,6 +1,7 @@
 
 class PyVPCBlock(object):
     network = None
+    prefix_length = None
     start_address = None
     end_address = None
     resource_id = None
@@ -16,6 +17,7 @@ class PyVPCBlock(object):
 
         if network:
             self.network = network
+            self.prefix_length = network.prefixlen
             self.start_address = network.network_address
             self.end_address = network.broadcast_address
             self.num_of_addresses = network.num_addresses
@@ -41,6 +43,9 @@ class PyVPCBlock(object):
     def get_network(self):
         return self.network
 
+    def get_network_prefix(self):
+        return self.prefix_length
+
     def get_start_address(self):
         return self.start_address
 
@@ -63,11 +68,11 @@ def return_pyvpc_objects_string(pyvpc_objects):
     # Prepare the table list, that contains lists of values
     for pyvpc_object in pyvpc_objects:
         table.append([pyvpc_object.get_start_address(), pyvpc_object.get_end_address(),
-                      pyvpc_object.get_num_addresses(), pyvpc_object.block_available,
-                      pyvpc_object.get_id(), pyvpc_object.get_name()])
+                      pyvpc_object.get_num_addresses(), pyvpc_object.get_network_prefix(),
+                      pyvpc_object.block_available, pyvpc_object.get_id(), pyvpc_object.get_name()])
 
     # Make sure headers are aligned with number of values is 'table'
-    headers = ["Lowest IP", "Upper IP", "Num of Addr", "Available", "ID", "Name"]
+    headers = ["Lowest IP", "Upper IP", "Num of Addr", "Prefix", "Available", "ID", "Name"]
 
     return tabulate(table, headers, tablefmt="github")
 
@@ -84,6 +89,7 @@ def return_pyvpc_objects_json(pyvpc_objects):
         result.append({'start_address': str(pyvpc_object.get_start_address()),
                        'end_address': str(pyvpc_object.get_end_address()),
                        'num_of_addresses': pyvpc_object.get_num_addresses(),
+                       'prefix': pyvpc_object.get_network_prefix(),
                        'available': pyvpc_object.block_available,
                        'id': pyvpc_object.get_id(),
                        'name': pyvpc_object.get_name()})
