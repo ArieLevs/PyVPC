@@ -38,13 +38,13 @@ pyvpc aws [-h] [--cidr-range CIDR_RANGE]
     ```
     will return:
     ```
-    | Lowest IP   | Upper IP       |   Num of Addr | Available   | ID                    | Name         |
-    |-------------|----------------|---------------|-------------|-----------------------|--------------|
-    | 10.0.0.0    | 10.19.255.255  |       1310720 | True        |                       |              |
-    | 10.20.0.0   | 10.20.255.255  |         65536 | False       | vpc-Ec9hQfmjk4sPCH65c | lev-test-vpc |
-    | 10.21.0.0   | 10.29.255.255  |        589824 | True        |                       |              |
-    | 10.30.0.0   | 10.30.255.255  |         65536 | False       | vpc-4WNpVY5wCLmdqfJLy | dev-k8s      |
-    | 10.31.0.0   | 10.255.255.255 |      14745600 | True        |                       |              |
+    | Lowest IP   | Upper IP       |   Num of Addr |   Prefix | Available   | ID                    | Name         |
+    |-------------|----------------|---------------|----------|-------------|-----------------------|--------------|
+    | 10.0.0.0    | 10.19.255.255  |       1310720 |          | True        |                       |              |
+    | 10.20.0.0   | 10.20.255.255  |         65536 |       16 | False       | vpc-Ec9hQfmjk4sPCH65c | lev-test-vpc |
+    | 10.21.0.0   | 10.29.255.255  |        589824 |          | True        |                       |              |
+    | 10.30.0.0   | 10.30.255.255  |         65536 |       16 | False       | vpc-4WNpVY5wCLmdqfJLy | dev-k8s      |
+    | 10.31.0.0   | 10.255.255.255 |      14745600 |          | True        |                       |              |
     ```
 
 *   For example, a VPC with `10.50.0.0/16` cidr, executing command:
@@ -54,18 +54,18 @@ pyvpc aws [-h] [--cidr-range CIDR_RANGE]
   
     will return:
     ```
-    | Lowest IP   | Upper IP      |   Num of Addr | Available   | ID                       | Name               |
-    |-------------|---------------|---------------|-------------|--------------------------|--------------------|
-    | 10.50.0.0   | 10.50.0.255   |           256 | True        |                          |                    |
-    | 10.50.1.0   | 10.50.1.255   |           256 | False       | subnet-p7s6f7rsgrgtvr5fe | private-arie-test  |
-    | 10.50.2.0   | 10.50.2.255   |           256 | False       | subnet-2nw28z822kcr9x726 | private-arie-test  |
-    | 10.50.3.0   | 10.50.10.255  |          2048 | True        |                          |                    |
-    | 10.50.11.0  | 10.50.11.255  |           256 | False       | subnet-3j744kpzmcg55qtza | public-arie-test   |
-    | 10.50.12.0  | 10.50.12.255  |           256 | False       | subnet-6vjape4vfk4jhajg8 | public-arie-test   |
-    | 10.50.13.0  | 10.50.20.255  |          2048 | True        |                          |                    |
-    | 10.50.21.0  | 10.50.21.255  |           256 | False       | subnet-j8wv89u4u3v4kyqs7 | database-arie-test |
-    | 10.50.22.0  | 10.50.22.255  |           256 | False       | subnet-7p4djeetkkkgmqqqk | database-arie-test |
-    | 10.50.23.0  | 10.50.255.255 |         59648 | True        |                          |                    |
+    | Lowest IP   | Upper IP      |   Num of Addr |   Prefix | Available   | ID                       | Name               |
+    |-------------|---------------|---------------|----------|-------------|--------------------------|--------------------|
+    | 10.50.0.0   | 10.50.63.255  |         16384 |          | True        |                          |                    |
+    | 10.50.64.0  | 10.50.95.255  |          8192 |       19 | False       | subnet-0905d925dd4d240fb | private-arie-test  |
+    | 10.50.96.0  | 10.50.127.255 |          8192 |       19 | False       | subnet-031a7b06bb1fbf991 | private-arie-test  |
+    | 10.50.128.0 | 10.50.200.255 |         18688 |          | True        |                          |                    |
+    | 10.50.201.0 | 10.50.201.255 |           256 |       24 | False       | subnet-09adedd87bec861e8 | public-arie-test   |
+    | 10.50.202.0 | 10.50.202.255 |           256 |       24 | False       | subnet-0fcceff21a973dda2 | public-arie-test   |
+    | 10.50.203.0 | 10.50.210.255 |          2048 |          | True        |                          |                    |
+    | 10.50.211.0 | 10.50.211.255 |           256 |       24 | False       | subnet-0da43f86bc6f4c42f | database-arie-test |
+    | 10.50.212.0 | 10.50.212.255 |           256 |       24 | False       | subnet-0a4c14480eb8189c5 | database-arie-test |
+    | 10.50.213.0 | 10.50.255.255 |         11008 |          | True        |                          |                    |
     ```
 
 ### Suggest available networks:
@@ -75,24 +75,24 @@ on the first example (`10.20.0.0/16` and `10.30.0.0/16` are reserved).
 
 the result will be:
 ```
-| Lowest IP   | Upper IP      |   Num of Addr | Available   | ID   | Name   |
-|-------------|---------------|---------------|-------------|------|--------|
-| 10.0.0.0    | 10.3.255.255  |        262144 | True        |      |        |
-| 10.4.0.0    | 10.7.255.255  |        262144 | True        |      |        |
-| 10.8.0.0    | 10.11.255.255 |        262144 | True        |      |        |
-| 10.12.0.0   | 10.15.255.255 |        262144 | True        |      |        |
+| Lowest IP   | Upper IP      |   Num of Addr |   Prefix | Available   | ID   | Name   |
+|-------------|---------------|---------------|----------|-------------|------|--------|
+| 10.0.0.0    | 10.3.255.255  |        262144 |       14 | True        |      |        |
+| 10.4.0.0    | 10.7.255.255  |        262144 |       14 | True        |      |        |
+| 10.8.0.0    | 10.11.255.255 |        262144 |       14 | True        |      |        |
+| 10.12.0.0   | 10.15.255.255 |        262144 |       14 | True        |      |        |
 ```
   
 Or if adding ` --cidr-range 10.0.0.0/10 --num-of-addr 100000`
 (we need all available network that have at least hundred thousand addresses),
 the result will be :
 ```
-| Lowest IP   | Upper IP      |   Num of Addr | Available   | ID   | Name   |
-|-------------|---------------|---------------|-------------|------|--------|
-| 10.0.0.0    | 10.15.255.255 |       1048576 | True        |      |        |
-| 10.16.0.0   | 10.19.255.255 |        262144 | True        |      |        |
-| 10.22.0.0   | 10.23.255.255 |        131072 | True        |      |        |
-| 10.24.0.0   | 10.27.255.255 |        262144 | True        |      |        |
-| 10.28.0.0   | 10.29.255.255 |        131072 | True        |      |        |
-| 10.32.0.0   | 10.63.255.255 |       2097152 | True        |      |        |
+| Lowest IP   | Upper IP      |   Num of Addr |   Prefix | Available   | ID   | Name   |
+|-------------|---------------|---------------|----------|-------------|------|--------|
+| 10.0.0.0    | 10.15.255.255 |       1048576 |       12 | True        |      |        |
+| 10.16.0.0   | 10.19.255.255 |        262144 |       14 | True        |      |        |
+| 10.22.0.0   | 10.23.255.255 |        131072 |       15 | True        |      |        |
+| 10.24.0.0   | 10.27.255.255 |        262144 |       14 | True        |      |        |
+| 10.28.0.0   | 10.29.255.255 |        131072 |       15 | True        |      |        |
+| 10.32.0.0   | 10.63.255.255 |       2097152 |       11 | True        |      |        |
 ```
