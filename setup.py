@@ -18,7 +18,6 @@ setuptools.setup(
     license='Apache License 2.0',
     packages=setuptools.find_packages(),
     install_requires=[
-        'argparse==1.4.0',
         'boto3==1.11.9'
     ],
     classifiers=(
