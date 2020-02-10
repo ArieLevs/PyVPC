@@ -5,7 +5,7 @@ from sys import stderr
 import boto3
 from pkg_resources import get_distribution, DistributionNotFound
 
-from pyvpc_cidr_block import PyVPCBlock, return_pyvpc_objects_string, return_pyvpc_objects_json
+from .pyvpc_cidr_block import PyVPCBlock, return_pyvpc_objects_string, return_pyvpc_objects_json
 
 
 def get_aws_resource_name(resource):
