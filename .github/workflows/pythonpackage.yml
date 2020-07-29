@@ -1,12 +1,23 @@
 name: Python package
 
-on: [pull_request]
+on:
+  push:
+    # run only when pushed to master branch.
+    branches:
+      - master
+
+    # run on every publish tags.
+    tags:
+      - v*
+  # run on any pr.
+  pull_request:
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 2
       matrix:
         python-version: [3.7, 3.8]
 
@@ -32,3 +43,66 @@ jobs:
         pip install wheel twine
         python setup.py bdist_wheel
         twine check dist/*
+
+  build:
+    if: github.ref == 'refs/heads/master'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Bump version using pybump
+        id: app_version_bump
+        run: |
+          pip install pybump
+          echo "::set-output name=app_version::$(pybump bump --level patch --file setup.py)"
+
+      - name: Publish to global pypi
+        run: |
+          pip install wheel twine
+          python setup.py bdist_wheel
+
+          twine upload dist/* \
+            --username ${{ secrets.PYPI_USERNAME }} \
+            --password ${{ secrets.PYPI_PASSWORD }} \
+            --repository-url https://upload.pypi.org/legacy/
+
+#      - name: Build and push docker image
+#        uses: docker/build-push-action@v1
+#        with:
+#          username: ${{ secrets.DOCKERHUB_USERNAME }}
+#          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+#          repository: arielev/pyvpc
+#          tags: ${{ steps.app_version_bump.outputs.app_version }},latest
+
+  commit:
+    if: github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      # currently there is no way of passing data between jobs except using artifact,
+      # this might be an option, but just do another bump for now,
+      # and anyway setup.py file will need to have some change since we checked out again
+      - name: Bump version using pybump
+        id: app_version_bump
+        run: |
+          pip install pybump
+          echo "::set-output name=app_version::$(pybump bump --level patch --file setup.py)"
+
+      - name: Commit new version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Update version on git repo
+          git config --local user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git config --local user.name "GitHub Action"
+          git add setup.py
+          git commit -m "update version to: ${{ steps.app_version_bump.outputs.app_version }} (github action)"
+
+          git push https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/ArieLevs/pyvpc HEAD:master
