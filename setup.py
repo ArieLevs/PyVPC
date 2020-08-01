@@ -7,7 +7,7 @@ keywords = ['Networking', 'IPv4', 'IP', 'CIDR', 'VPC', 'AWS', 'Subnet', 'Range',
 
 setuptools.setup(
     name="pyvpc",
-    version="0.1.4",
+    version="0.1.5",
     author="Arie Lev",
     author_email="levinsonarie@gmail.com",
     description="Python AWS VPC CIDR available range finder with sub networks",
