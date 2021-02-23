@@ -3,7 +3,7 @@ from argparse import ArgumentTypeError
 from ipaddress import IPv4Network, IPv4Address
 
 from pyvpc.pyvpc import get_available_networks, check_valid_ip_int, check_valid_ip_prefix, calculate_suggested_cidr
-from pyvpc_cidr_block import PyVPCBlock, return_pyvpc_objects_json
+from pyvpc.pyvpc_cidr_block import PyVPCBlock, return_pyvpc_objects_json
 
 
 class IPv4Test(unittest.TestCase):

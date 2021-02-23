@@ -37,7 +37,7 @@ jobs:
     - name: Test with unittest
       run: |
         pip install -r test/requirements.txt
-        cd pyvpc && python -m unittest discover -s .. -vv
+        python -m unittest test/test_pyvpc.py -vv
     - name: Check distribution valid
       run: |
         pip install wheel twine
