@@ -18,7 +18,8 @@ setuptools.setup(
     license='Apache License 2.0',
     packages=setuptools.find_packages(),
     install_requires=[
-        'boto3==1.11.9'
+        'boto3==1.17.13',
+        'tabulate==0.8.9'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
