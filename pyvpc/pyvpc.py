@@ -278,7 +278,7 @@ def get_available_networks(desired_cidr, reserved_networks):
                     range_head = reserved_net.get_end_address() + 1
 
             # If last iteration (here are no more overlapping networks, until the 'range_tail' address)
-            if reserved_networks.index(reserved_net) == len(reserved_networks) - 1:
+        if reserved_networks.index(reserved_net) == len(reserved_networks) - 1:
                 networks_result.append(PyVPCBlock(start_address=range_head,
                                                   end_address=range_tail,
                                                   block_available=True))
