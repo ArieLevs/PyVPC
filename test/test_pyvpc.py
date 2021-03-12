@@ -26,7 +26,10 @@ class IPv4Test(unittest.TestCase):
         self.reserved_networks = [
             PyVPCBlock(network=IPv4Network('10.10.0.0/16')),
             PyVPCBlock(network=IPv4Network('10.8.0.0/14')),
-            PyVPCBlock(network=IPv4Network('10.50.0.0/16'))
+            PyVPCBlock(network=IPv4Network('10.50.0.0/16')),
+            # this network is not overlapping, and should not be present on test result.
+            # its added to simulate a case when calculating overlapping + non overlapping multiple networks.
+            PyVPCBlock(network=IPv4Network('192.168.20.0/24')),
         ]
 
         self.not_overlapping_cidr = IPv4Network('10.80.0.0/24')
