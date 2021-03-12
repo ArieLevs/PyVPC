@@ -239,54 +239,57 @@ def get_available_networks(desired_cidr, reserved_networks):
     # If there are no reserved networks, then return that all 'desired_cidr' (Network Object) range is available
     if not reserved_networks:
         # Since there are no reserved network, the lower, and upper boundary of the 'desired_cidr' can be used
-        return [PyVPCBlock(network=desired_cidr,
-                           block_available=True)]
+        return [PyVPCBlock(network=desired_cidr, block_available=True)]
 
-    # Sort PyVPCBlock objects (reserved networks) by the 'network' field, so it will be easier to calculate
-    reserved_networks = sorted(reserved_networks, key=lambda x: x.network, reverse=False)
+    # in order to find/calculate available networks, reduce list of networks to only overlapping networks
+    overlapping_networks = []
+    for reserved_net in reserved_networks:
+        if desired_cidr.overlaps(reserved_net.get_network()):
+            # need to figure out how the reserved network is 'blocking' the desired cidr
+            overlapping_networks.append(reserved_net)
+
+    # If overlapping_networks is empty, then there where reserved networks, but did not overlapped
+    if not overlapping_networks:
+        return [PyVPCBlock(network=desired_cidr, block_available=True)]
+
+    # Sort PyVPCBlock objects (overlapping networks) by the 'network' field, so it will be easier to calculate
+    overlapping_networks = sorted(overlapping_networks, key=lambda x: x.network, reverse=False)
 
     networks_result = []
     range_head = desired_cidr[0]  # Mark the start of calculation at the HEAD (view details above) point
     range_tail = desired_cidr[-1]  # Mark the end of calculation at the TAIL (view details above) point
 
-    # Iterate over the reserved networks
-    for reserved_net in reserved_networks:
-        # If there is an overlap, we need to figure out how the reserved network is 'blocking' the desired cidr
-        if desired_cidr.overlaps(reserved_net.get_network()):
-            # If the lower boundary of current range_head is smaller than the lower boundary of reserved_net
-            # It means the 'reserved_net' network is necessarily from 'the right' of range_head, and its available
-            if range_head < reserved_net.get_start_address():
-                networks_result.append(PyVPCBlock(start_address=range_head,
-                                                  end_address=reserved_net.get_start_address() - 1,
-                                                  block_available=True,
-                                                  resource_type='available block'))
+    # Iterate over the overlapping networks
+    for reserved_net in overlapping_networks:
+        # If the lower boundary of current range_head is smaller than the lower boundary of reserved_net
+        # It means the 'reserved_net' network is necessarily from 'the right' of range_head, and its available
+        if range_head < reserved_net.get_start_address():
+            networks_result.append(PyVPCBlock(start_address=range_head,
+                                              end_address=reserved_net.get_start_address() - 1,
+                                              block_available=True,
+                                              resource_type='available block'))
 
-            # Append the overlapping network as NOT available
-            networks_result.append(PyVPCBlock(network=reserved_net.get_network(), resource_id=reserved_net.get_id(),
-                                              name=reserved_net.get_name()))
+        # Append the overlapping network as NOT available
+        networks_result.append(PyVPCBlock(network=reserved_net.get_network(), resource_id=reserved_net.get_id(),
+                                          name=reserved_net.get_name()))
 
-            # If the most upper address of current reserved_net (that is overlapping the desired_cidr),
-            # is larger/equal than the most upper address of desired_cidr, then there is no point perform calculations
-            if reserved_net.get_end_address() >= range_tail:
-                break
-            else:  # Else there might be other overlapping networks,
-                # head should always point to the next lower available address
-                # so only if current head is "from the left" of most upper overlapping network, set it as new head,
-                # As there might be a case of an inner network, see reserved_net (2) for details
-                if range_head < reserved_net.get_end_address():
-                    # Set the new range_head value, to one ip address above the upper boundary of reserved_net
-                    range_head = reserved_net.get_end_address() + 1
+        # If the most upper address of current reserved_net (that is overlapping the desired_cidr),
+        # is larger/equal than the most upper address of desired_cidr, then there is no point perform calculations
+        if reserved_net.get_end_address() >= range_tail:
+            break
+        else:  # Else there might be other overlapping networks,
+            # head should always point to the next lower available address
+            # so only if current head is "from the left" of most upper overlapping network, set it as new head,
+            # As there might be a case of an inner network, see reserved_net (2) for details
+            if range_head < reserved_net.get_end_address():
+                # Set the new range_head value, to one ip address above the upper boundary of reserved_net
+                range_head = reserved_net.get_end_address() + 1
 
-            # If last iteration (here are no more overlapping networks, until the 'range_tail' address)
-            if reserved_networks.index(reserved_net) == len(reserved_networks) - 1:
-                networks_result.append(PyVPCBlock(start_address=range_head,
-                                                  end_address=range_tail,
-                                                  block_available=True))
-
-    # If result is empty, then there where reserved networks, but the did not overlapped
-    if not networks_result:
-        networks_result.append(PyVPCBlock(network=desired_cidr, block_available=True))
-        return networks_result
+        # If last iteration (here are no more overlapping networks, until the 'range_tail' address)
+        if overlapping_networks.index(reserved_net) == len(overlapping_networks) - 1:
+            networks_result.append(PyVPCBlock(start_address=range_head,
+                                              end_address=range_tail,
+                                              block_available=True))
     return networks_result
 
 
